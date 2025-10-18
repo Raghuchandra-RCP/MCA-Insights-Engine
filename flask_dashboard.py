@@ -419,13 +419,13 @@ def search_companies(search_term='', state='', status='', year='', limit=100):
             query += " AND COMPANY_STATUS = %s"
             params.append(status)
         
-        if year:
+        if year and year.isdigit():
             query += " AND EXTRACT(YEAR FROM DATE_OF_INCORPORATION) = %s"
             params.append(int(year))
         
         query += f" ORDER BY LAST_UPDATED DESC LIMIT {limit}"
         
-        df = pd.read_sql_query(query, engine, params=params)
+        df = pd.read_sql_query(query, engine, params=params if params else None)
         return df.to_dict('records')
     except Exception as e:
         logger.error(f"Error searching companies: {str(e)}")

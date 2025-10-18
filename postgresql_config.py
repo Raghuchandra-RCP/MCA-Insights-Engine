@@ -23,9 +23,10 @@ class PostgreSQLConfig:
         self.port = os.getenv('POSTGRES_PORT', '5432')
         self.database = os.getenv('POSTGRES_DB', 'mca_insights_engine')
         self.user = os.getenv('POSTGRES_USER', 'postgres')
-        self.password = os.getenv('POSTGRES_PASSWORD', '')
+        self.password = os.getenv('POSTGRES_PASSWORD', 'rcp@2004')
         
-        self.connection_string = f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        from urllib.parse import quote_plus
+        self.connection_string = f"postgresql://{self.user}:{quote_plus(self.password)}@{self.host}:{self.port}/{self.database}"
         self.engine = create_engine(self.connection_string)
     
     def get_connection(self):
