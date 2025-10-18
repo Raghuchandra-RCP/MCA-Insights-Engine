@@ -364,14 +364,14 @@ def get_recent_changes(limit=10):
     """Get recent changes"""
     try:
         engine = get_database_engine()
-        query = """
+        query = f"""
             SELECT cl.*, c.COMPANY_NAME, c.STATE 
             FROM change_logs cl
             LEFT JOIN companies c ON cl.CIN = c.CIN
             ORDER BY cl.CHANGE_DATE DESC
-            LIMIT %s
+            LIMIT {limit}
         """
-        df = pd.read_sql_query(query, engine, params=[limit] if limit else None)
+        df = pd.read_sql_query(query, engine)
         return df.to_dict('records')
     except Exception as e:
         logger.error(f"Error getting recent changes: {str(e)}")
