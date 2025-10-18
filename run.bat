@@ -18,7 +18,7 @@ python -c "import sys; print('Python version:', sys.version)"
 
 echo.
 echo Installing required packages...
-pip install -r requirements-simple.txt
+pip install -r requirements.txt
 
 echo.
 echo Setting up database...

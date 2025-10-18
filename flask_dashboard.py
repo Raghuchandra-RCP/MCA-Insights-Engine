@@ -371,7 +371,7 @@ def get_recent_changes(limit=10):
             ORDER BY cl.CHANGE_DATE DESC
             LIMIT %s
         """
-        df = pd.read_sql_query(query, engine, params=[limit])
+        df = pd.read_sql_query(query, engine, params=[limit] if limit else None)
         return df.to_dict('records')
     except Exception as e:
         logger.error(f"Error getting recent changes: {str(e)}")

@@ -17,7 +17,7 @@ python3 --version
 
 echo
 echo "Installing required packages..."
-pip3 install -r requirements-simple.txt
+pip3 install -r requirements.txt
 
 echo
 echo "Setting up database..."
