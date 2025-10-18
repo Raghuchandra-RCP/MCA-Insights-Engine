@@ -185,7 +185,7 @@
 // State Distribution Chart
 const stateData = {{ state_distribution | tojson }};
 const stateLabels = stateData.map(item => item.state || item.STATE || item.State || 'Unknown');
-const stateValues = stateData.map(item => item.count);
+const stateValues = stateData.map(item => item.count || 0);
 
 const stateCtx = document.getElementById('stateChart').getContext('2d');
 new Chart(stateCtx, {
@@ -224,7 +224,7 @@ new Chart(stateCtx, {
 // Status Distribution Chart
 const statusData = {{ status_distribution | tojson }};
 const statusLabels = statusData.map(item => item.company_status || item.COMPANY_STATUS || item.Company_Status || 'Unknown');
-const statusValues = statusData.map(item => item.count);
+const statusValues = statusData.map(item => item.count || 0);
 
 const statusCtx = document.getElementById('statusChart').getContext('2d');
 new Chart(statusCtx, {
