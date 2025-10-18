@@ -1,0 +1,55 @@
+{
+  "task_scheduler": {
+    "task_name": "MCA_Daily_Update",
+    "description": "Daily MCA data update and change detection",
+    "default_run_time": "09:00",
+    "enabled": true,
+    "run_every_days": 1
+  },
+  "change_simulation": {
+    "new_incorporation_probability": 0.05,
+    "status_change_probability": 0.10,
+    "capital_change_probability": 0.08,
+    "deregistration_probability": 0.03,
+    "capital_change_range": [0.8, 1.5]
+  },
+  "snapshot_settings": {
+    "keep_snapshots_days": 30,
+    "snapshot_format": "csv"
+  },
+  "change_detection": {
+    "compare_consecutive_snapshots": true,
+    "fields_to_monitor": [
+      "COMPANY_STATUS",
+      "AUTHORIZED_CAPITAL", 
+      "PAIDUP_CAPITAL",
+      "COMPANY_CLASS"
+    ]
+  },
+  "reporting": {
+    "generate_daily_report": true,
+    "generate_ai_summary": true,
+    "include_recent_changes": 10
+  },
+  "enrichment": {
+    "run_after_changes": true,
+    "enrich_changed_companies_only": true,
+    "max_enrichment_per_run": 50
+  },
+  "logging": {
+    "log_level": "INFO",
+    "log_file": "daily_update.log"
+  },
+  "directories": {
+    "snapshots": "data/snapshots",
+    "change_logs": "data/change_logs", 
+    "reports": "reports"
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "mca_insights_engine",
+    "user": "postgres",
+    "password": "rcp@2004"
+  }
+}

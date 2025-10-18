@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Data Enrichment - MCA Insights Engine{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-link me-2"></i>
+            Data Enrichment
+        </h1>
+    </div>
+</div>
+
+<!-- Enrichment Statistics -->
+{% if enrichment_stats %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <i class="fas fa-database fa-2x text-primary mb-2"></i>
+                <h3 class="metric-value">{{ "{:,}".format(enrichment_stats.total_enriched) if enrichment_stats.total_enriched else 0 }}</h3>
+                <p class="metric-label">Total Enriched</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <i class="fas fa-tags fa-2x text-success mb-2"></i>
+                <h3 class="metric-value">{{ "{:,}".format(enrichment_stats.with_sector) if enrichment_stats.with_sector else 0 }}</h3>
+                <p class="metric-label">With Sector Info</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x text-warning mb-2"></i>
+                <h3 class="metric-value">{{ "{:,}".format(enrichment_stats.with_directors) if enrichment_stats.with_directors else 0 }}</h3>
+                <p class="metric-label">With Director Info</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric-card">
+            <div class="card-body text-center">
+                <i class="fas fa-globe fa-2x text-info mb-2"></i>
+                <h3 class="metric-value">{{ "{:,}".format(enrichment_stats.with_website) if enrichment_stats.with_website else 0 }}</h3>
+                <p class="metric-label">With Website Info</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Sector Distribution -->
+{% if sector_distribution %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Companies by Sector
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sectorChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Sector Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Sector</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_sector_count = sector_distribution | sum(attribute='count') %}
+                            {% for sector in sector_distribution %}
+                            <tr>
+                                <td>{{ sector.sector }}</td>
+                                <td>{{ sector.count }}</td>
+                                <td>{{ "%.1f"|format((sector.count / total_sector_count * 100) if total_sector_count > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Enriched Companies Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    Enriched Companies
+                    {% if enriched_companies %}
+                        <span class="badge bg-primary ms-2">{{ enriched_companies|length }} companies</span>
+                    {% endif %}
+                </h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="runEnrichment()">
+                        <i class="fas fa-sync me-1"></i>Run Enrichment
+                    </button>
+                    {% if enriched_companies %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="exportToCSV()">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if enriched_companies %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="enrichedTable">
+                            <thead>
+                                <tr>
+                                    <th>CIN</th>
+                                    <th>Company Name</th>
+                                    <th>State</th>
+                                    <th>Status</th>
+                                    <th>Sector</th>
+                                    <th>Industry</th>
+                                    <th>Directors</th>
+                                    <th>Website</th>
+                                    <th>Source</th>
+                                    <th>Enrichment Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for company in enriched_companies %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('company_details', cin=company.cin) }}" class="text-decoration-none">
+                                            <code>{{ company.cin }}</code>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <strong>{{ company.company_name or 'N/A' }}</strong>
+                                    </td>
+                                    <td>{{ company.state or 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if company.company_status == 'Active' else 'danger' if company.company_status == 'Strike Off' else 'warning' }}">
+                                            {{ company.company_status or 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ company.sector or 'N/A' }}</td>
+                                    <td>{{ company.industry or 'N/A' }}</td>
+                                    <td>
+                                        {% if company.director_names %}
+                                            {{ company.director_names[:30] }}{{ '...' if company.director_names|length > 30 else '' }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if company.company_website %}
+                                            <a href="{{ company.company_website }}" target="_blank" class="text-decoration-none">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ company.enrichment_source or 'N/A' }}</td>
+                                    <td>{{ company.enrichment_date.strftime('%Y-%m-%d') if company.enrichment_date else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-link fa-3x mb-3"></i>
+                        <h5>No enriched data available</h5>
+                        <p>Run the enrichment process to get started</p>
+                        <button class="btn btn-primary" onclick="runEnrichment()">
+                            <i class="fas fa-sync me-1"></i>Run Enrichment
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Sector Distribution Chart
+{% if sector_distribution %}
+const sectorData = {{ sector_distribution | tojson }};
+const sectorLabels = sectorData.map(item => item.sector);
+const sectorValues = sectorData.map(item => item.count);
+
+const sectorCtx = document.getElementById('sectorChart').getContext('2d');
+new Chart(sectorCtx, {
+    type: 'doughnut',
+    data: {
+        labels: sectorLabels,
+        datasets: [{
+            data: sectorValues,
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40',
+                '#FF6384',
+                '#C9CBCF'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+{% endif %}
+
+function runEnrichment() {
+    if (confirm('This will run the data enrichment process. Continue?')) {
+        // Show loading
+        const button = event.target;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Running...';
+        button.disabled = true;
+        
+        fetch('/api/enrichment/run', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sample_size: 100 })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Enrichment completed successfully! Processed ' + data.companies_processed + ' companies.');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error running enrichment: ' + error);
+        })
+        .finally(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        });
+    }
+}
+
+function exportToCSV() {
+    const table = document.getElementById('enrichedTable');
+    const rows = Array.from(table.querySelectorAll('tr'));
+    
+    let csv = [];
+    rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('th, td'));
+        const rowData = cells.map(cell => {
+            let text = cell.textContent.trim();
+            if (text.includes(',') || text.includes('"')) {
+                text = '"' + text.replace(/"/g, '""') + '"';
+            }
+            return text;
+        });
+        csv.push(rowData.join(','));
+    });
+    
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'enriched_companies.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}
+

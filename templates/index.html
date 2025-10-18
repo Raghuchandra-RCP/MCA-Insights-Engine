@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - MCA Insights Engine{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="welcome-banner">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1>Welcome to MCA Insights Engine</h1>
+            <p>Advanced corporate data analytics platform powered by AI for comprehensive company insights and change tracking.</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <i class="fas fa-chart-line" style="font-size: 4rem; opacity: 0.3;"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics Grid -->
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-icon primary">
+                <i class="fas fa-building"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ "{:,}".format(stats.total_companies) if stats.total_companies else 0 }}</div>
+        <div class="metric-label">Total Companies</div>
+        <div class="metric-description">All registered companies in the system</div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ "{:,}".format(stats.active_companies) if stats.active_companies else 0 }}</div>
+        <div class="metric-label">Active Companies</div>
+        <div class="metric-description">Currently operational companies</div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-icon warning">
+                <i class="fas fa-chart-line"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ "{:,}".format(stats.recent_changes) if stats.recent_changes else 0 }}</div>
+        <div class="metric-label">Recent Changes</div>
+        <div class="metric-description">Changes in the last 7 days</div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-icon purple">
+                <i class="fas fa-link"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ "{:,}".format(stats.enriched_companies) if stats.enriched_companies else 0 }}</div>
+        <div class="metric-label">Enriched Companies</div>
+        <div class="metric-description">Companies with additional data</div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-icon danger">
+                <i class="fas fa-times-circle"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ "{:,}".format(stats.inactive_companies) if stats.inactive_companies else 0 }}</div>
+        <div class="metric-label">Inactive Companies</div>
+        <div class="metric-description">Companies with inactive status</div>
+    </div>
+    
+    <div class="metric-card">
+        <div class="metric-header">
+            <div class="metric-icon primary">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+        </div>
+        <div class="metric-value">{{ state_distribution|length if state_distribution else 0 }}</div>
+        <div class="metric-label">States Covered</div>
+        <div class="metric-description">Number of states in database</div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row mb-6">
+    <div class="col-lg-6 mb-4">
+        <div class="chart-container">
+            <h5 class="mb-4">
+                <i class="fas fa-map-marker-alt me-2"></i>
+                Companies by State
+            </h5>
+            <canvas id="stateChart" width="400" height="300"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-4">
+        <div class="chart-container">
+            <h5 class="mb-4">
+                <i class="fas fa-info-circle me-2"></i>
+                Companies by Status
+            </h5>
+            <canvas id="statusChart" width="400" height="300"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Changes Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="table-container">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Recent Changes
+                    </h5>
+                    <a href="{{ url_for('changes') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-1"></i>
+                        View All Changes
+                    </a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                {% if recent_changes %}
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>CIN</th>
+                                <th>Company Name</th>
+                                <th>Change Type</th>
+                                <th>Field Changed</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for change in recent_changes %}
+                            <tr>
+                                <td>
+                                    <code class="text-primary">{{ change.cin or change.CIN }}</code>
+                                </td>
+                                <td>
+                                    <strong>{{ change.company_name or change.COMPANY_NAME or 'N/A' }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ 'success' if (change.change_type or change.CHANGE_TYPE) == 'New Incorporation' else 'warning' if (change.change_type or change.CHANGE_TYPE) == 'Status Change' else 'info' }}">
+                                        {{ change.change_type or change.CHANGE_TYPE }}
+                                    </span>
+                                </td>
+                                <td>{{ change.field_changed or change.FIELD_CHANGED }}</td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ (change.change_date or change.CHANGE_DATE).strftime('%Y-%m-%d %H:%M') if (change.change_date or change.CHANGE_DATE) else 'N/A' }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('company_details', cin=change.cin or change.CIN) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i>
+                                        View Details
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Recent Changes</h5>
+                        <p class="text-muted">No changes have been recorded in the system yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// State Distribution Chart
+const stateData = {{ state_distribution | tojson }};
+const stateLabels = stateData.map(item => item.state || item.STATE || item.State || 'Unknown');
+const stateValues = stateData.map(item => item.count);
+
+const stateCtx = document.getElementById('stateChart').getContext('2d');
+new Chart(stateCtx, {
+    type: 'doughnut',
+    data: {
+        labels: stateLabels,
+        datasets: [{
+            data: stateValues,
+            backgroundColor: [
+                '#14b8a6',
+                '#0ea5e9',
+                '#8b5cf6',
+                '#f59e0b',
+                '#ef4444',
+                '#10b981'
+            ],
+            borderWidth: 0,
+            hoverOffset: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+
+// Status Distribution Chart
+const statusData = {{ status_distribution | tojson }};
+const statusLabels = statusData.map(item => item.company_status || item.COMPANY_STATUS || item.Company_Status || 'Unknown');
+const statusValues = statusData.map(item => item.count);
+
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'bar',
+    data: {
+        labels: statusLabels,
+        datasets: [{
+            label: 'Number of Companies',
+            data: statusValues,
+            backgroundColor: '#14b8a6',
+            borderRadius: 6,
+            borderSkipped: false
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: '#f1f5f9'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

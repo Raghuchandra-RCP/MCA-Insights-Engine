@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}AI Chat - MCA Insights Engine{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row mb-6">
+    <div class="col-12">
+        <h1 class="mb-2">
+            <i class="fas fa-robot me-3"></i>
+            AI Chat Assistant
+        </h1>
+        <p class="text-muted mb-0">Ask questions about MCA data in natural language and get intelligent insights</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Chat Interface -->
+    <div class="col-lg-8 mb-4">
+        <div class="chat-container">
+            <div class="chat-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-comments me-2"></i>
+                    Chat with MCA Data
+                </h5>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chatMessages" class="chat-messages">
+                <div class="message bot">
+                    <strong>Assistant:</strong> Hello! I'm your MCA data assistant. You can ask me questions like:
+                    <ul class="mt-2 mb-0">
+                        <li>How many new companies were incorporated recently?</li>
+                        <li>Show me companies in Maharashtra</li>
+                        <li>What's the total number of companies?</li>
+                        <li>Tell me about manufacturing companies</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="chat-input-container">
+                <form id="chatForm" class="chat-input">
+                    <input type="text" id="chatInput" class="form-control" 
+                           placeholder="Ask a question about MCA data..." 
+                           autocomplete="off" required>
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Example Queries -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Example Queries
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm example-query" 
+                            data-query="How many new companies were incorporated recently?">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        New incorporations
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm example-query" 
+                            data-query="Show me companies in Maharashtra">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        Companies by state
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm example-query" 
+                            data-query="What's the total number of companies?">
+                        <i class="fas fa-building me-2"></i>
+                        Total companies
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm example-query" 
+                            data-query="Tell me about manufacturing companies">
+                        <i class="fas fa-industry me-2"></i>
+                        Manufacturing sector
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm example-query" 
+                            data-query="How many companies were struck off last month?">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Deregistrations
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm example-query" 
+                            data-query="What are the top states by company count?">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        State statistics
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Information -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-code me-2"></i>
+                    API Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">You can also use the API directly:</p>
+                <div class="bg-light p-3 rounded mb-3">
+                    <code class="small">
+                        POST /api/ai/chat<br>
+                        {<br>
+                        &nbsp;&nbsp;"query": "your question"<br>
+                        }
+                    </code>
+                </div>
+                <div class="d-grid">
+                    <a href="/api/ai/chat" class="btn btn-sm btn-outline-secondary" target="_blank">
+                        <i class="fas fa-external-link-alt me-1"></i>
+                        Test API
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatMessages = document.getElementById('chatMessages');
+    
+    // Handle form submission
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = chatInput.value.trim();
+        if (query) {
+            sendMessage(query);
+            chatInput.value = '';
+        }
+    });
+    
+    // Handle example query buttons
+    document.querySelectorAll('.example-query').forEach(button => {
+        button.addEventListener('click', function() {
+            const query = this.getAttribute('data-query');
+            chatInput.value = query;
+            sendMessage(query);
+        });
+    });
+    
+    // Auto-focus on input
+    chatInput.focus();
+    
+    function sendMessage(query) {
+        // Add user message to chat
+        addMessage('user', query);
+        
+        // Show loading indicator
+        const loadingId = addMessage('bot', 'Thinking...', true);
+        
+        // Send request to API
+        fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query: query })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading message
+            const loadingElement = document.getElementById(loadingId);
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+            
+            // Add bot response
+            if (data.success) {
+                addMessage('bot', data.response);
+            } else {
+                addMessage('bot', 'Sorry, I encountered an error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            // Remove loading message
+            const loadingElement = document.getElementById(loadingId);
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+            
+            addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+            console.error('Error:', error);
+        });
+    }
+    
+    function addMessage(sender, content, isLoading = false) {
+        const messageId = 'msg_' + Date.now();
+        const messageDiv = document.createElement('div');
+        messageDiv.id = messageId;
+        messageDiv.className = `message ${sender}`;
+        
+        if (isLoading) {
+            messageDiv.innerHTML = `<strong>Assistant:</strong> <i class="fas fa-spinner fa-spin"></i> ${content}`;
+        } else {
+            const senderName = sender === 'user' ? 'You' : 'Assistant';
+            messageDiv.innerHTML = `<strong>${senderName}:</strong> ${content}`;
+        }
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        return messageId;
+    }
+    
+    // Handle Enter key in input
+    chatInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+});
+</script>
+{% endblock %}

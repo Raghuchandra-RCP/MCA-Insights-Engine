@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.company_name or company.COMPANY_NAME }} - MCA Insights Engine{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('search') }}">Search</a></li>
+                <li class="breadcrumb-item active">{{ company.company_name or company.COMPANY_NAME }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Company Header -->
+<div class="company-header mb-6">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h1 class="company-title">{{ company.company_name or company.COMPANY_NAME }}</h1>
+            <p class="company-subtitle">
+                <code class="text-primary">{{ company.cin or company.CIN }}</code>
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="/api/search_company?search_term={{ company.cin or company.CIN }}" 
+                   class="btn btn-outline-primary" target="_blank">
+                    <i class="fas fa-code me-1"></i>
+                    API Response
+                </a>
+                <button class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="fas fa-print me-1"></i>
+                    Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Company Information -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Company Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">CIN</label>
+                            <p class="mb-0"><code class="fs-6">{{ company.cin or company.CIN }}</code></p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Company Class</label>
+                            <p class="mb-0">{{ company.company_class or company.COMPANY_CLASS or 'N/A' }}</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Status</label>
+                            <div>
+                                <span class="badge badge-{{ 'success' if (company.company_status or company.COMPANY_STATUS) == 'Active' else 'warning' if (company.company_status or company.COMPANY_STATUS) == 'Under Process' else 'danger' }}">
+                                    {{ company.company_status or company.COMPANY_STATUS or 'N/A' }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">State</label>
+                            <p class="mb-0">{{ company.state or company.STATE or 'N/A' }}</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">ROC Code</label>
+                            <p class="mb-0">{{ company.roc_code or company.ROC_CODE or 'N/A' }}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Incorporation Date</label>
+                            <p class="mb-0">{{ (company.date_of_incorporation or company.DATE_OF_INCORPORATION).strftime('%B %d, %Y') if (company.date_of_incorporation or company.DATE_OF_INCORPORATION) else 'N/A' }}</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Authorized Capital</label>
+                            <p class="mb-0 text-success fw-semibold fs-5">
+                                ₹{{ "{:,.2f}".format(company.authorized_capital or company.AUTHORIZED_CAPITAL or 0) }}
+                            </p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Paid-up Capital</label>
+                            <p class="mb-0 text-success fw-semibold fs-5">
+                                ₹{{ "{:,.2f}".format(company.paidup_capital or company.PAIDUP_CAPITAL or 0) }}
+                            </p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-muted">Last Updated</label>
+                            <p class="mb-0 text-muted">
+                                {{ (company.last_updated or company.LAST_UPDATED).strftime('%B %d, %Y at %I:%M %p') if (company.last_updated or company.LAST_UPDATED) else 'N/A' }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-muted">Principal Business Activity</label>
+                    <p class="mb-0">{{ company.principal_business_activity or company.PRINCIPAL_BUSINESS_ACTIVITY or 'N/A' }}</p>
+                </div>
+                
+                <div class="mb-0">
+                    <label class="form-label fw-semibold text-muted">Registered Office Address</label>
+                    <p class="mb-0">{{ company.registered_office_address or company.REGISTERED_OFFICE_ADDRESS or 'N/A' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Enriched Data -->
+        {% if enriched_data %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-link me-2"></i>
+                    Enriched Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted">Sector</label>
+                    <p class="mb-0">{{ enriched_data.sector or enriched_data.SECTOR or 'N/A' }}</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted">Industry</label>
+                    <p class="mb-0">{{ enriched_data.industry or enriched_data.INDUSTRY or 'N/A' }}</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-muted">Directors</label>
+                    <p class="mb-0">{{ enriched_data.directors or enriched_data.DIRECTORS or 'N/A' }}</p>
+                </div>
+                {% if enriched_data.website or enriched_data.WEBSITE %}
+                <div class="mb-0">
+                    <label class="form-label fw-semibold text-muted">Website</label>
+                    <p class="mb-0">
+                        <a href="{{ enriched_data.website or enriched_data.WEBSITE }}" 
+                           target="_blank" class="text-decoration-none">
+                            {{ enriched_data.website or enriched_data.WEBSITE }}
+                            <i class="fas fa-external-link-alt ms-1"></i>
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-tools me-2"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/api/search_company?search_term={{ company.cin or company.CIN }}" 
+                       class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-code me-1"></i>
+                        API Response
+                    </a>
+                    <button class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>
+                        Print Details
+                    </button>
+                    <a href="{{ url_for('search') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-search me-1"></i>
+                        Search More Companies
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change History -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-history me-2"></i>
+                    Change History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if changes %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Change Type</th>
+                                    <th>Field Changed</th>
+                                    <th>Old Value</th>
+                                    <th>New Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for change in changes %}
+                                <tr>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ (change.change_date or change.CHANGE_DATE).strftime('%Y-%m-%d %H:%M') if (change.change_date or change.CHANGE_DATE) else 'N/A' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-{{ 'success' if (change.change_type or change.CHANGE_TYPE) == 'New Incorporation' else 'warning' if (change.change_type or change.CHANGE_TYPE) == 'Status Change' else 'info' }}">
+                                            {{ change.change_type or change.CHANGE_TYPE }}
+                                        </span>
+                                    </td>
+                                    <td>{{ change.field_changed or change.FIELD_CHANGED }}</td>
+                                    <td>
+                                        <code class="text-muted">{{ change.old_value or change.OLD_VALUE or 'N/A' }}</code>
+                                    </td>
+                                    <td>
+                                        <code class="text-success">{{ change.new_value or change.NEW_VALUE or 'N/A' }}</code>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-history fa-2x text-muted mb-3"></i>
+                        <h6 class="text-muted">No Change History</h6>
+                        <p class="text-muted mb-0">No changes have been recorded for this company.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Print functionality
+function printPage() {
+    window.print();
+}
+
+// Add smooth scrolling for better UX
+document.addEventListener('DOMContentLoaded', function() {
+    // Add animation to cards
+    const cards = document.querySelectorAll('.card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('fade-in');
+    });
+});
+</script>
+{% endblock %}

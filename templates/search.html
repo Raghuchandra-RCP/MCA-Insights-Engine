@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Search Companies - MCA Insights Engine{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row mb-6">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-2">
+                    <i class="fas fa-search me-3"></i>
+                    Search Companies
+                </h1>
+                <p class="text-muted mb-0">Find and explore company information with advanced search capabilities</p>
+            </div>
+            <div>
+                <span class="badge badge-info fs-6">{{ total_results }} companies found</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="search-container mb-6">
+    <h5 class="mb-4">
+        <i class="fas fa-filter me-2"></i>
+        Search & Filter
+    </h5>
+    <form method="GET" action="{{ url_for('search') }}">
+        <div class="search-filters">
+            <div>
+                <label for="q" class="form-label">Search Term</label>
+                <input type="text" class="form-control" id="q" name="q" 
+                       value="{{ search_term }}" placeholder="Enter CIN or Company Name">
+            </div>
+            <div>
+                <label for="state" class="form-label">State</label>
+                <select class="form-select" id="state" name="state">
+                    <option value="">All States</option>
+                    {% for state in states %}
+                    <option value="{{ state }}" {{ 'selected' if state == state_filter else '' }}>
+                        {{ state }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Status</option>
+                    {% for status in statuses %}
+                    <option value="{{ status }}" {{ 'selected' if status == status_filter else '' }}>
+                        {{ status }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="year" class="form-label">Year</label>
+                <select class="form-select" id="year" name="year">
+                    <option value="">All Years</option>
+                    {% for year in years %}
+                    <option value="{{ year }}" {{ 'selected' if year == year_filter else '' }}>
+                        {{ year }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end gap-3 mt-4">
+            <a href="{{ url_for('search') }}" class="btn btn-outline-primary">
+                <i class="fas fa-refresh me-1"></i>
+                Clear Filters
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search me-1"></i>
+                Search
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Search Results -->
+<div class="table-container">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>
+                Search Results
+            </h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" onclick="exportToCSV()">
+                    <i class="fas fa-download me-1"></i>
+                    Export CSV
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    {% if companies %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>CIN</th>
+                        <th>Company Name</th>
+                        <th>Class</th>
+                        <th>Status</th>
+                        <th>State</th>
+                        <th>Incorporation Date</th>
+                        <th>Authorized Capital</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for company in companies %}
+                    <tr>
+                        <td>
+                            <code class="text-primary">{{ company.cin or company.CIN }}</code>
+                        </td>
+                        <td>
+                            <strong>{{ company.company_name or company.COMPANY_NAME or 'N/A' }}</strong>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ company.company_class or company.COMPANY_CLASS or 'N/A' }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if (company.company_status or company.COMPANY_STATUS) == 'Active' else 'warning' if (company.company_status or company.COMPANY_STATUS) == 'Under Process' else 'danger' }}">
+                                {{ company.company_status or company.COMPANY_STATUS or 'N/A' }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ company.state or company.STATE or 'N/A' }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {{ (company.date_of_incorporation or company.DATE_OF_INCORPORATION).strftime('%Y-%m-%d') if (company.date_of_incorporation or company.DATE_OF_INCORPORATION) else 'N/A' }}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="text-success fw-semibold">
+                                ₹{{ "{:,.2f}".format(company.authorized_capital or company.AUTHORIZED_CAPITAL or 0) }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('company_details', cin=company.cin or company.CIN) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye me-1"></i>
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="card-header">
+            <nav aria-label="Search results pagination">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if pagination.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('search', page=pagination.prev_num, q=search_term, state=state_filter, status=status_filter, year=year_filter) }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != pagination.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('search', page=page_num, q=search_term, state=state_filter, status=status_filter, year=year_filter) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">…</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if pagination.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('search', page=pagination.next_num, q=search_term, state=state_filter, status=status_filter, year=year_filter) }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Companies Found</h5>
+            <p class="text-muted">Try adjusting your search criteria or filters.</p>
+            <a href="{{ url_for('search') }}" class="btn btn-primary">
+                <i class="fas fa-refresh me-1"></i>
+                Clear Filters
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function exportToCSV() {
+    // Get current search parameters
+    const params = new URLSearchParams(window.location.search);
+    
+    // Add export parameter
+    params.set('export', 'csv');
+    
+    // Create download link
+    const downloadUrl = window.location.pathname + '?' + params.toString();
+    window.open(downloadUrl, '_blank');
+}
+
+// Auto-submit form on filter change
+document.addEventListener('DOMContentLoaded', function() {
+    const filterSelects = document.querySelectorAll('#state, #status, #year');
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            // Only auto-submit if there's a search term or other filters are selected
+            const searchTerm = document.getElementById('q').value;
+            const hasFilters = Array.from(filterSelects).some(s => s.value);
+            
+            if (searchTerm || hasFilters) {
+                document.querySelector('form').submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

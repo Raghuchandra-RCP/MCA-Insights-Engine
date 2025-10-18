@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - MCA Insights Engine{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-file-alt me-2"></i>
+            Reports
+        </h1>
+    </div>
+</div>
+
+<!-- Generate Report -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-plus me-2"></i>
+                    Generate New Report
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="report_date" class="form-label">Report Date</label>
+                            <input type="date" class="form-control" id="report_date" 
+                                   value="">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-primary" onclick="generateReport()">
+                                    <i class="fas fa-magic me-1"></i>Generate AI Summary
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Available Reports -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-folder me-2"></i>
+                    Available Reports
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if reports %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Report Name</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Modified</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in reports %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-file-{{ 'text' if report.name.endswith('.txt') else 'code' }} me-2"></i>
+                                        {{ report.name }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'info' if report.name.endswith('.txt') else 'secondary' }}">
+                                            {{ 'Text' if report.name.endswith('.txt') else 'JSON' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ "%.1f"|format(report.size / 1024) }} KB</td>
+                                    <td>{{ report.modified.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    onclick="viewReport('{{ report.name }}')">
+                                                <i class="fas fa-eye me-1"></i>View
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" 
+                                                    onclick="downloadReport('{{ report.name }}')">
+                                                <i class="fas fa-download me-1"></i>Download
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-file-alt fa-3x mb-3"></i>
+                        <h5>No reports available</h5>
+                        <p>Generate a new report to get started</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Viewer Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportModalTitle">Report Viewer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reportContent">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p class="mt-2">Loading report...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="downloadCurrentReport()">
+                    <i class="fas fa-download me-1"></i>Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentReportName = '';
+
+function generateReport() {
+    const date = document.getElementById('report_date').value;
+    
+    if (!date) {
+        alert('Please select a date');
+        return;
+    }
+    
+    // Show loading
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Generating...';
+    button.disabled = true;
+    
+    fetch('/api/ai/summary', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: date })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Report generated successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error generating report: ' + error);
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function viewReport(reportName) {
+    currentReportName = reportName;
+    const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+    const modalTitle = document.getElementById('reportModalTitle');
+    const modalContent = document.getElementById('reportContent');
+    
+    modalTitle.textContent = reportName;
+    modalContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Loading report...</p></div>';
+    
+    modal.show();
+    
+    // Load report content
+    fetch(`/reports/${reportName}`)
+        .then(response => response.text())
+        .then(content => {
+            if (reportName.endsWith('.json')) {
+                try {
+                    const jsonData = JSON.parse(content);
+                    modalContent.innerHTML = `<pre class="bg-light p-3 rounded"><code>${JSON.stringify(jsonData, null, 2)}</code></pre>`;
+                } catch (e) {
+                    modalContent.innerHTML = `<pre class="bg-light p-3 rounded"><code>${content}</code></pre>`;
+                }
+            } else {
+                modalContent.innerHTML = `<pre class="bg-light p-3 rounded"><code>${content}</code></pre>`;
+            }
+        })
+        .catch(error => {
+            modalContent.innerHTML = `<div class="alert alert-danger">Error loading report: ${error}</div>`;
+        });
+}
+
+function downloadReport(reportName) {
+    const link = document.createElement('a');
+    link.href = `/reports/${reportName}`;
+    link.download = reportName;
+    link.click();
+}
+
+function downloadCurrentReport() {
+    if (currentReportName) {
+        downloadReport(currentReportName);
+    }
+}
+
+// Set today's date as default
+document.getElementById('report_date').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}
