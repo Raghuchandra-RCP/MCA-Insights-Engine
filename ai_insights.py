@@ -19,16 +19,16 @@ class AIInsightsEngine:
         
         if self.openai_api_key:
             try:
-                # Try new OpenAI client first
-                self.client = openai.OpenAI(api_key=self.openai_api_key)
-            except AttributeError:
-                try:
+                # Check if OpenAI has OpenAI class (newer versions)
+                if hasattr(openai, 'OpenAI'):
+                    self.client = openai.OpenAI(api_key=self.openai_api_key)
+                else:
                     # Fallback to old OpenAI client
                     openai.api_key = self.openai_api_key
                     self.client = openai
-                except Exception as e:
-                    logger.warning(f"OpenAI client initialization failed: {str(e)}")
-                    self.client = None
+            except Exception as e:
+                logger.warning(f"OpenAI client initialization failed: {str(e)}")
+                self.client = None
         else:
             logger.warning("OpenAI API key not found. AI features will be limited.")
             self.client = None
